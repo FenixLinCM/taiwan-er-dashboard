@@ -3,9 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="急診報馬仔提供全台 59 間重度級急救責任醫院的即時急診量能數據，每 15 分鐘全自動更新。包含等待住院、看診、推床及加護病房人數，幫助您掌握醫療量能，找床位免走冤枉路。">
+    <meta name="keywords" content="急診室即時訊息, 急診滿床, 醫院等床, 衛福部急診數據, 醫療分流, 急診報馬仔">
     <title>急診報馬仔：全台醫院塞車雷達</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
         body {
             background-color: #0f172a; 
@@ -31,37 +35,74 @@
                 <h1 class="text-3xl font-bold tracking-wider text-white">🚑 急診報馬仔 <span class="text-slate-400 text-xl">| 🐸全台醫院塞車雷達</span></h1>
                 <p class="text-slate-400 mt-2 text-sm">即時掌握重度級醫院量能，找床位請找羅廷瑋</p>
             </div>
-            <div class="mt-4 md:mt-0 bg-slate-800 border border-slate-700 px-4 py-2 rounded-lg shadow-lg text-sm font-semibold text-slate-300 flex items-center gap-2">
-                <span class="relative flex h-3 w-3">
-                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
-                </span>
-                <div class="mt-4 md:mt-0 flex flex-wrap gap-3 items-center">
-                <!-- 🐸 Ko-fi 贊助按鈕 -->
+            <div class="mt-4 md:mt-0 flex flex-wrap gap-3 items-center">
+                <!-- 🐸 Ko-fi 贊助按鈕（綠色 dot 在裡面）-->
                 <a href="https://ko-fi.com/croaktw" target="_blank" class="bg-[#FF5E5B] hover:bg-[#ff4a47] text-white font-bold text-sm px-4 py-2 rounded-lg shadow-lg flex items-center gap-2 transition-transform hover:scale-105">
-                    <span class="text-base animate-bounce">🐸</span>
-                    <span>贊助伺服器費用</span>
-                </a>
-                <div class="bg-slate-800 border border-slate-700 px-4 py-2 rounded-lg shadow-lg text-sm font-semibold text-slate-300 flex items-center gap-2">
                     <span class="relative flex h-3 w-3">
                       <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                       <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
                     </span>
+                    <span class="text-base animate-bounce">🐸</span>
+                    <span>贊助伺服器費用</span>
+                </a>
+                <!-- 系統更新時間 -->
+                <div class="bg-slate-800 border border-slate-700 px-4 py-2 rounded-lg shadow-lg text-sm font-semibold text-slate-300 flex items-center gap-2">
                     系統更新時間：<span id="update-time" class="text-emerald-400 tracking-wider">載入中...</span>
                 </div>
             </div>
-                
-            </div>
         </header>
 
-        <div class="space-y-10">
+        <!-- 📊 全台醫院總計（永久顯示）-->
+        <div class="mb-6 bg-gradient-to-r from-slate-800 to-slate-700 border border-slate-600 rounded-2xl p-6 shadow-2xl">
+            <div class="flex items-center gap-3 mb-4">
+                <span class="text-3xl">🏥</span>
+                <h2 class="text-2xl font-bold text-white">全台急診即時統計</h2>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="bg-slate-900/50 rounded-xl p-4 border border-slate-600">
+                    <div class="text-slate-400 text-xs uppercase tracking-wider mb-2">等待住院</div>
+                    <div id="total-admit" class="text-3xl font-bold text-red-400">-</div>
+                </div>
+                <div class="bg-slate-900/50 rounded-xl p-4 border border-slate-600">
+                    <div class="text-slate-400 text-xs uppercase tracking-wider mb-2">等待看診</div>
+                    <div id="total-see" class="text-3xl font-bold text-yellow-400">-</div>
+                </div>
+                <div class="bg-slate-900/50 rounded-xl p-4 border border-slate-600">
+                    <div class="text-slate-400 text-xs uppercase tracking-wider mb-2">等待推床</div>
+                    <div id="total-push" class="text-3xl font-bold text-blue-400">-</div>
+                </div>
+                <div class="bg-slate-900/50 rounded-xl p-4 border border-slate-600">
+                    <div class="text-slate-400 text-xs uppercase tracking-wider mb-2">加護病房</div>
+                    <div id="total-icu" class="text-3xl font-bold text-purple-400">-</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 📢 緊急聯絡資訊（永久顯示）-->
+        <div class="mb-6 text-sm text-red-300 bg-red-950/50 border border-red-900/60 rounded-xl px-4 py-3 flex items-center gap-2 shadow-inner">
+            <span class="text-base">📢</span>
+            <span>如有病床需求或緊急協助，請聯繫台中市立法委員羅廷瑋服務處：<strong class="text-white bg-red-600/40 px-2 py-0.5 rounded font-mono select-all">(04) 2260-2727</strong></span>
+        </div>
+
+        <!-- 🗺️ 地圖/列表切換按鈕 -->
+        <div class="flex gap-4 mb-6">
+            <button id="btn-list-view" class="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-semibold transition-all duration-300 flex items-center gap-2 shadow-lg">
+                <span class="text-xl">📋</span>
+                <span>列表檢視</span>
+            </button>
+            <button id="btn-map-view" class="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-semibold transition-all duration-300 flex items-center gap-2 shadow-lg">
+                <span class="text-xl">🗺️</span>
+                <span>地圖檢視</span>
+            </button>
+        </div>
+
+        <!-- 🗺️ 地圖容器 -->
+        <div id="map-container" class="hidden mb-8 rounded-xl overflow-hidden shadow-2xl border-2 border-slate-700" style="height: 600px;"></div>
+
+        <div class="space-y-10" id="list-container">
             
         <section>
                 <div class="flex flex-col gap-2 mb-4">
-                    <div class="mb-2 text-sm text-red-300 bg-red-950/50 border border-red-900/60 rounded-xl px-4 py-3 flex items-center gap-2 shadow-inner">
-                        <span class="text-base">📢</span>
-                        <span>如有病床需求或緊急協助，請聯繫台中市立法委員羅廷瑋服務處：<strong class="text-white bg-red-600/40 px-2 py-0.5 rounded font-mono select-all">(04) 2260-2727</strong></span>
-                    </div>
                     
                     <div class="flex items-center gap-3">
                         <span class="flex h-4 w-4 rounded-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.8)]"></span>
@@ -97,7 +138,11 @@
     </div>
 
     <script>
-        const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR4_XMpW_axVYSQFaPtTK_OaXprwGlSGYJjBs5eGjNzjQY62TJXBByT62sVLLZh9f9Mk37RQiUl58js/pub?gid=1971379726&single=true&output=csv';
+        // 🗺️ 使用新的地圖視覺化資料分頁（含經緯度）
+        const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR4_XMpW_axVYSQFaPtTK_OaXprwGlSGYJjBs5eGjNzjQY62TJXBByT62sVLLZh9f9Mk37RQiUl58js/pub?gid=1390068115&single=true&output=csv';
+        
+        let map = null;
+        let hospitalData = [];
 
         function createCard(hospital) {
             const fullName = hospital['醫院全名'] || hospital['簡稱'];
@@ -182,15 +227,55 @@
                 
                 let lastUpdateTime = "等待訊號...";
                 let cards = { red: [], yellow: [], green: [] };
+                hospitalData = []; // 🗺️ 清空並重新收集醫院資料
+                
+                // 📊 初始化全台總計
+                let totalAdmit = 0, totalSee = 0, totalPush = 0, totalIcu = 0;
 
                 data.forEach(row => {
-                    if (!row['簡稱']) return; 
+                    if (!row['簡稱']) return;
                     if (row['資料更新時間']) lastUpdateTime = row['資料更新時間'];
                     
                     const cardData = createCard(row);
                     cards[cardData.status].push(cardData);
+                    
+                    // 📊 累加總計
+                    const waitAdmit = parseInt(row['住院']) || 0;
+                    const waitSee = parseInt(row['看診']) || 0;
+                    const waitPush = parseInt(row['推床']) || 0;
+                    const waitIcu = parseInt(row['加護病房']) || 0;
+                    
+                    totalAdmit += waitAdmit;
+                    totalSee += waitSee;
+                    totalPush += waitPush;
+                    totalIcu += waitIcu;
+                    
+                    // 🗺️ 收集帶有經緯度的醫院資料
+                    const lat = parseFloat(row['緯度']);
+                    const lng = parseFloat(row['經度']);
+                    if (lat && lng) {
+                        hospitalData.push({
+                            name: row['醫院全名'] || row['簡稱'],
+                            shortName: row['簡稱'],
+                            address: row['地址'],
+                            lat: lat,
+                            lng: lng,
+                            waitAdmit: waitAdmit,
+                            waitSee: waitSee,
+                            waitPush: waitPush,
+                            waitIcu: waitIcu,
+                            isFull: row['是否已向119通報滿床']?.includes('是'),
+                            status: cardData.status
+                        });
+                    }
                 });
 
+                // 📊 更新全台總計顯示
+                document.getElementById('total-admit').innerText = totalAdmit;
+                document.getElementById('total-see').innerText = totalSee;
+                document.getElementById('total-push').innerText = totalPush;
+                document.getElementById('total-icu').innerText = totalIcu;
+                
                 document.getElementById('update-time').innerText = lastUpdateTime;
 
                 const sortByWait = (a, b) => b.waitAdmit - a.waitAdmit;
@@ -201,6 +286,105 @@
                 redZone.innerHTML = cards.red.length ? cards.red.map(c => c.html).join('') : '<p class="text-slate-500 col-span-full italic">目前無醫院達此警戒標準</p>';
                 yellowZone.innerHTML = cards.yellow.length ? cards.yellow.map(c => c.html).join('') : '<p class="text-slate-500 col-span-full italic">目前無醫院達此警戒標準</p>';
                 greenZone.innerHTML = cards.green.length ? cards.green.map(c => c.html).join('') : '<p class="text-slate-500 col-span-full italic">目前無資料</p>';
+                
+                // 🗺️ 初始化地圖（僅在第一次載入時）
+                if (hospitalData.length > 0) {
+                    initMap();
+                }
+            }
+        });
+        
+        // 🗺️ 地圖初始化函數
+        function initMap() {
+            if (!map) {
+                map = L.map('map-container').setView([23.7, 120.9], 7);
+                // 🌙 使用深色地圖主題（CartoDB Dark Matter）
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                    attribution: '© OpenStreetMap contributors © CARTO',
+                    maxZoom: 19
+                }).addTo(map);
+            }
+            renderMapMarkers();
+        }
+        
+        // 🗺️ 渲染地圖標記
+        function renderMapMarkers() {
+            if (!map) return;
+            
+            // 清除現有標記
+            map.eachLayer(layer => {
+                if (layer instanceof L.Marker) {
+                    map.removeLayer(layer);
+                }
+            });
+            
+            // 加入醫院標記
+            hospitalData.forEach(h => {
+                const color = h.status === 'red' ? '#ef4444' :
+                              h.status === 'yellow' ? '#eab308' : '#10b981';
+                const size = h.status === 'red' ? 24 : h.status === 'yellow' ? 20 : 16;
+                
+                const icon = L.divIcon({
+                    html: `<div style="background:${color}; width:${size}px; height:${size}px; border-radius:50%; border:3px solid white; box-shadow:0 0 10px rgba(0,0,0,0.5);${h.status === 'red' ? 'animation: pulse 2s infinite;' : ''}"></div>`,
+                    iconSize: [size, size],
+                    className: ''
+                });
+                
+                const marker = L.marker([h.lat, h.lng], { icon: icon }).addTo(map);
+                
+                // 點擊顯示詳細資訊
+                marker.bindPopup(`
+                    <div class="text-slate-900" style="min-width: 250px;">
+                        <h3 class="font-bold text-lg mb-2 text-slate-800">${h.name}</h3>
+                        <p class="text-sm text-slate-600 mb-3 border-b pb-2">${h.address}</p>
+                        <div class="grid grid-cols-2 gap-2 text-sm">
+                            <div class="bg-slate-50 p-2 rounded">
+                                <span class="font-semibold text-slate-700">等待住院：</span>
+                                <span class="text-lg font-bold ${h.waitAdmit >= 50 ? 'text-red-600' : h.waitAdmit >= 20 ? 'text-yellow-600' : 'text-emerald-600'}">${h.waitAdmit}</span>
+                            </div>
+                            <div class="bg-slate-50 p-2 rounded">
+                                <span class="font-semibold text-slate-700">等待推床：</span>
+                                <span class="text-lg font-bold text-slate-800">${h.waitPush}</span>
+                            </div>
+                            <div class="bg-slate-50 p-2 rounded">
+                                <span class="font-semibold text-slate-700">等待看診：</span>
+                                <span class="text-lg font-bold text-slate-800">${h.waitSee}</span>
+                            </div>
+                            <div class="bg-slate-50 p-2 rounded">
+                                <span class="font-semibold text-slate-700">加護病房：</span>
+                                <span class="text-lg font-bold text-slate-800">${h.waitIcu}</span>
+                            </div>
+                        </div>
+                        ${h.isFull ? '<div class="mt-3"><span class="bg-red-600 text-white text-xs px-3 py-1 rounded-full font-bold">⚠️ 通報滿床</span></div>' : ''}
+                    </div>
+                `, {
+                    maxWidth: 300
+                });
+            });
+        }
+        
+        // 🗺️ 切換到列表檢視
+        document.getElementById('btn-list-view').addEventListener('click', () => {
+            document.getElementById('map-container').classList.add('hidden');
+            document.getElementById('list-container').classList.remove('hidden');
+            document.getElementById('btn-list-view').classList.add('bg-slate-700');
+            document.getElementById('btn-list-view').classList.remove('bg-slate-600');
+            document.getElementById('btn-map-view').classList.remove('bg-blue-700');
+            document.getElementById('btn-map-view').classList.add('bg-blue-600');
+        });
+        
+        // 🗺️ 切換到地圖檢視
+        document.getElementById('btn-map-view').addEventListener('click', () => {
+            document.getElementById('map-container').classList.remove('hidden');
+            document.getElementById('list-container').classList.add('hidden');
+            document.getElementById('btn-list-view').classList.remove('bg-slate-700');
+            document.getElementById('btn-list-view').classList.add('bg-slate-600');
+            document.getElementById('btn-map-view').classList.add('bg-blue-700');
+            document.getElementById('btn-map-view').classList.remove('bg-blue-600');
+            
+            // 確保地圖正確顯示
+            if (map) {
+                setTimeout(() => map.invalidateSize(), 100);
             }
         });
     </script>
