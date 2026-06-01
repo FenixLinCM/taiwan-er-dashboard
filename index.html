@@ -10,6 +10,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='0.9em' font-size='90'>🐸</text></svg>">
     <style>
         body {
             background-color: #0f172a; 
@@ -32,7 +33,7 @@
     <div class="max-w-7xl mx-auto">
         <header class="mb-8 flex flex-col md:flex-row md:justify-between md:items-end border-b border-slate-700 pb-4">
             <div>
-                <h1 class="text-3xl font-bold tracking-wider text-white">🚑 急診報馬仔 <span class="text-slate-400 text-xl">| 🐸全台醫院塞車雷達</span></h1>
+                <h1 class="text-3xl font-bold tracking-wider text-white">🚑 急診報馬仔 <span class="text-slate-400 text-xl">| 🐸全台醫院塞車雷達 </span></h1>
                 <p class="text-slate-400 mt-2 text-sm">即時掌握重度級醫院量能，找床位請找羅廷瑋</p>
             </div>
             <div class="mt-4 md:mt-0 flex flex-wrap gap-3 items-center">
@@ -136,7 +137,10 @@
 
         </div>
     </div>
-
+    <footer class="mt-8 mb-4 text-center text-xs text-slate-500 space-y-1">
+        <div>後端數據全自動調度中 | Powered by 🐸</div>
+        <div>© 2026 急診報馬仔 | <span class="bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded font-mono text-[10px]">v1.0.0</span></div>
+    </footer>
     <script>
         // 🗺️ 使用新的地圖視覺化資料分頁（含經緯度）
         const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR4_XMpW_axVYSQFaPtTK_OaXprwGlSGYJjBs5eGjNzjQY62TJXBByT62sVLLZh9f9Mk37RQiUl58js/pub?gid=1390068115&single=true&output=csv';
